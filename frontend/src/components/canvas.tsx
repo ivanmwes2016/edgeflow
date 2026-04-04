@@ -14,8 +14,11 @@ import ReactFlow, {
 } from "reactflow";
 import ToolBar from "./toolBar";
 import { useCallback, useRef, useState } from "react";
-import type { AISuggestion, SimStep } from "../types/base";
+import type { AISuggestion, ServiceType, SimStep } from "../types/base";
 import ServiceNode from "../nodes/ServiceNode";
+import { SERVICE_CONFIGS } from "../static/data";
+import SimPanel from "./SimPanel";
+import ConfigModal from "./configModal";
 
 const nodeTypes = { service: ServiceNode };
 
@@ -57,23 +60,143 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     [setNodes, setEdges],
   );
 
+  const handleSimulate = async () => {
+    if (nodes.length === 0) return;
+    setSimulating(true);
+    setSimVisible(true);
+    setCurrentStep(0);
+
+    const payload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        label: n.data.label,
+        type: n.data.serviceType,
+      })),
+      edges: edges.map((e) => ({ source: e.source, target: e.target })),
+    };
+
+    try {
+      const res = await fetch("/api/simulate/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      const steps: SimStep[] = data.steps;
+      setSimSteps(steps);
+
+      // Mark nodes as deploying / deployed step by step
+      for (let i = 0; i < steps.length; i++) {
+        await new Promise((r) => setTimeout(r, 600));
+        setCurrentStep(i);
+        const step = steps[i];
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === step.nodeId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    deploying: step.status === "running",
+                    deployed: step.status === "success",
+                  },
+                }
+              : n,
+          ),
+        );
+      }
+    } catch {
+      alert("Server not running");
+      //   throw new Error("Server not running");
+    }
+    setSimulating(false);
+  };
+
+  const handleGenerate = async () => {
+    const payload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        type: n.data.serviceType,
+        label: n.data.label,
+        port: n.data.port,
+        image: SERVICE_CONFIGS[n.data.serviceType as ServiceType]?.defaultImage,
+      })),
+      edges: edges.map((e) => ({ source: e.source, target: e.target })),
+    };
+    try {
+      const res = await fetch("/api/config/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const yaml = await res.text();
+      setYamlConfig(yaml);
+    } catch {
+      // Fallback YAML
+      const svcNames = nodes.map((n) =>
+        n.data.label.toLowerCase().replace(" ", "_"),
+      );
+      setYamlConfig(
+        `version: '3.8'\n\nservices:\n${nodes
+          .map((n) => {
+            const name = n.data.label.toLowerCase().replace(" ", "_");
+            const cfg = SERVICE_CONFIGS[n.data.serviceType as ServiceType];
+            return `  ${name}:\n    image: ${cfg.defaultImage}\n    container_name: ${name}\n${n.data.port ? `    ports:\n      - "${n.data.port}:${n.data.port}"\n` : ""}    networks:\n      - edgeflow_net`;
+          })
+          .join("\n")}\n\nnetworks:\n  edgeflow_net:\n    driver: bridge`,
+      );
+    }
+    setConfigVisible(true);
+  };
+
+  const handleAnalyse = async () => {
+    setAiVisible(true);
+    setAiLoading(true);
+    const payload = {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        type: n.data.serviceType,
+        label: n.data.label,
+      })),
+      edges: edges.map((e) => ({ source: e.source, target: e.target })),
+    };
+    try {
+      const res = await fetch("/api/ai/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      setAiSuggestions(data.suggestions);
+    } catch {
+      setAiSuggestions([
+        {
+          type: "info",
+          message: "Start the FastAPI backend to enable live AI analysis.",
+        },
+      ]);
+    }
+    setAiLoading(false);
+  };
+
+  const handleClear = () => {
+    setNodes([]);
+    setEdges([]);
+    setSimSteps([]);
+    setSimVisible(false);
+    setAiVisible(false);
+    setConfigVisible(false);
+  };
+
   return (
     <div className=" flex-1 flex flex-col h-full">
       <ToolBar
-        onSimulate={function (): void {
-          throw new Error("Function not implemented.");
-        }}
-        onGenerate={function (): void {
-          throw new Error("Function not implemented.");
-        }}
-        onAnalyse={function (): void {
-          throw new Error("Function not implemented.");
-        }}
-        onClear={function (): void {
-          throw new Error("Function not implemented.");
-        }}
-        nodeCount={0}
-        simulating={false}
+        onSimulate={handleSimulate}
+        onGenerate={handleGenerate}
+        onAnalyse={handleAnalyse}
+        onClear={handleClear}
+        nodeCount={nodes.length}
+        simulating={simulating}
       />
 
       <div ref={reactFlowWrapper} className="flex-1 relative h-full">
@@ -122,7 +245,19 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
             </div>
           </div>
         )}
+
+        <SimPanel
+          steps={simSteps}
+          currentStep={currentStep}
+          visible={simVisible}
+          onClose={() => setSimVisible(false)}
+        />
       </div>
+      <ConfigModal
+        yaml={yamlConfig}
+        visible={configVisible}
+        onClose={() => setConfigVisible(false)}
+      />
     </div>
   );
 }
