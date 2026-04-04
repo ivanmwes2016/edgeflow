@@ -1,0 +1,58 @@
+import type { IServiceConfig, ServiceType } from "../types/base";
+
+export const SERVICE_CONFIGS: Record<ServiceType, IServiceConfig> = {
+  web: {
+    label: "Web App",
+    color: "#1e3a5f",
+    border: "#38bdf8",
+    glow: "rgba(56,189,248,0.4)",
+    defaultPort: 3000,
+    defaultImage: "nginx:alpine",
+    icon: "🌐",
+  },
+  api: {
+    label: "API Service",
+    color: "#1a3347",
+    border: "#34d399",
+    glow: "rgba(52,211,153,0.4)",
+    defaultPort: 8000,
+    defaultImage: "python:3.12-slim",
+    icon: "⚡",
+  },
+  database: {
+    label: "Database",
+    color: "#2d1f3d",
+    border: "#a78bfa",
+    glow: "rgba(167,139,250,0.4)",
+    defaultPort: 5432,
+    defaultImage: "postgres:16",
+    icon: "🗄️",
+  },
+  cache: {
+    label: "Cache",
+    color: "#1f2d1a",
+    border: "#fb923c",
+    glow: "rgba(251,146,60,0.4)",
+    defaultPort: 6379,
+    defaultImage: "redis:7-alpine",
+    icon: "⚡",
+  },
+  gateway: {
+    label: "API Gateway",
+    color: "#1f2937",
+    border: "#f472b6",
+    glow: "rgba(244,114,182,0.4)",
+    defaultPort: 80,
+    defaultImage: "traefik:v3",
+    icon: "🔀",
+  },
+  worker: {
+    label: "Worker",
+    color: "#1c2a1f",
+    border: "#fbbf24",
+    glow: "rgba(251,191,36,0.4)",
+    defaultPort: undefined,
+    defaultImage: "python:3.12-slim",
+    icon: "⚙️",
+  },
+};
