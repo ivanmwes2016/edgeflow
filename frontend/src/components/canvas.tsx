@@ -12,7 +12,7 @@ import ReactFlow, {
 } from "reactflow";
 import ToolBar from "./toolBar";
 import { useCallback, useRef, useState } from "react";
-import type { AISuggestion, ServiceType, SimStep } from "../types/base";
+import type { AISuggestion, ServiceType } from "../types/base";
 import ServiceNode from "../nodes/ServiceNode";
 import { SERVICE_CONFIGS } from "../static/data";
 import SimPanel from "./SimPanel";
@@ -31,9 +31,9 @@ interface Props {
 }
 
 export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
-  const [simSteps, setSimSteps] = useState<SimStep[]>([]);
+  const [deployLogs, setDeployLogs] = useState<string[]>([]);
+  const [deploying, setDeploying] = useState<boolean>();
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [currentStep, setCurrentStep] = useState(0);
   const [simVisible, setSimVisible] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [yamlConfig, setYamlConfig] = useState("");
@@ -96,7 +96,6 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     if (nodes.length === 0) return;
     setSimulating(true);
     setSimVisible(true);
-    setCurrentStep(0);
 
     const payload = {
       nodes: nodes.map((n) => ({
@@ -108,40 +107,33 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     };
 
     try {
-      const res = await fetch(`${config.API_ENDPOINT}/simulate/run`, {
+      const res = await fetch(`${config.API_ENDPOINT}/deploy/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const { jobId, steps } = await res.json();
-      setSimSteps(steps);
+      const { jobId } = await res.json();
 
       const eventSource = new EventSource(
-        `${config.API_ENDPOINT}/simulate/stream/${jobId}`,
+        `${config.API_ENDPOINT}/deploy/stream/${jobId}`,
       );
 
       eventSource.onmessage = (e) => {
-        const step: SimStep = JSON.parse(e.data);
-        setCurrentStep((i) => i + 1);
-        setNodes((nds) =>
-          nds.map((n) =>
-            n.id === step.nodeId
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    deploying: step.status === "running",
-                    deployed: step.status === "success",
-                  },
-                }
-              : n,
-          ),
-        );
+        setDeployLogs((prev) => [...prev, e.data]);
+      };
+
+      eventSource.addEventListener("done", () => {
+        eventSource.close();
+        setDeploying(false);
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setDeploying(false);
       };
     } catch {
-      alert("Server not running");
-      //   throw new Error("Server not running");
+      throw new Error("Server not running");
     }
     setSimulating(false);
   };
@@ -204,7 +196,6 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
   const handleClear = () => {
     setNodes([]);
     setEdges([]);
-    setSimSteps([]);
     setSimVisible(false);
     setAiVisible(false);
     setConfigVisible(false);
@@ -276,8 +267,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
         )}
 
         <SimPanel
-          steps={simSteps}
-          currentStep={currentStep}
+          steps={deployLogs}
           visible={simVisible}
           onClose={() => setSimVisible(false)}
         />

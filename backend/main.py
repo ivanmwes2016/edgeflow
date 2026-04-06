@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import simulate
+from routers import  deploy
 
 
 app = FastAPI(title="EdgeFlowAPI", version="1.0.0")
@@ -11,7 +11,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(simulate.router, prefix="/api/simulate", tags=["simulate"])
+app.include_router(deploy.router, prefix="/api/deploy", tags=["deploy"])
 
 
 
