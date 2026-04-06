@@ -142,15 +142,13 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     const payload = {
       nodes: nodes.map((n) => ({
         id: n.id,
-        type: n.data.serviceType,
         label: n.data.label,
-        port: n.data.port,
-        image: SERVICE_CONFIGS[n.data.serviceType as ServiceType]?.defaultImage,
+        type: n.data.serviceType,
       })),
       edges: edges.map((e) => ({ source: e.source, target: e.target })),
     };
     try {
-      const res = await fetch("/api/config/generate", {
+      const res = await fetch(`${config.API_ENDPOINT}/deploy/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -175,7 +173,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
       edges: edges.map((e) => ({ source: e.source, target: e.target })),
     };
     try {
-      const res = await fetch("/api/ai/suggest", {
+      const res = await fetch(`${config.API_ENDPOINT}/ai/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

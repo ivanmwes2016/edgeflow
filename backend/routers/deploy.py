@@ -230,6 +230,13 @@ def deploy_stop(payload: GraphPayload):
     finally:
         os.unlink(tmp_path)
 
+@router.post("/generate")
+def generateConfig(payload: GraphPayload):
+    return buildYAMLContent(payload)
+
+
+
+
 
     
 
