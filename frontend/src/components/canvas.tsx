@@ -3,14 +3,12 @@ import ReactFlow, {
   BackgroundVariant,
   Controls,
   useEdgesState,
-  useNodesState,
   type Edge,
-  type EdgeChange,
-  type OnEdgesChange,
   type OnNodesChange,
   type Node,
   type Connection,
   addEdge,
+  reconnectEdge,
 } from "reactflow";
 import ToolBar from "./toolBar";
 import { useCallback, useRef, useState } from "react";
@@ -19,6 +17,8 @@ import ServiceNode from "../nodes/ServiceNode";
 import { SERVICE_CONFIGS } from "../static/data";
 import SimPanel from "./SimPanel";
 import ConfigModal from "./configModal";
+import AIPanel from "./AiPanel";
+import { config } from "../constants";
 
 const nodeTypes = { service: ServiceNode };
 
@@ -42,6 +42,38 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
   const [aiVisible, setAiVisible] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+
+  const edgeReconnectSuccessful = useRef(true);
+
+  const onEdgeDoubleClick = useCallback(
+    (_: React.MouseEvent, edge: Edge) => {
+      console.log("heloor");
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    },
+    [setEdges],
+  );
+
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      edgeReconnectSuccessful.current = true;
+      setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+    },
+    [setEdges],
+  );
+
+  const onReconnectEnd = useCallback(
+    (_: MouseEvent | TouchEvent, edge: Edge) => {
+      if (!edgeReconnectSuccessful.current) {
+        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      }
+      edgeReconnectSuccessful.current = true;
+    },
+    [setEdges],
+  );
 
   const onConnect = useCallback(
     (params: Connection | Edge) =>
@@ -76,20 +108,22 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     };
 
     try {
-      const res = await fetch("/api/simulate/run", {
+      const res = await fetch(`${config.API_ENDPOINT}/simulate/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      const steps: SimStep[] = data.steps;
+
+      const { jobId, steps } = await res.json();
       setSimSteps(steps);
 
-      // Mark nodes as deploying / deployed step by step
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise((r) => setTimeout(r, 600));
-        setCurrentStep(i);
-        const step = steps[i];
+      const eventSource = new EventSource(
+        `${config.API_ENDPOINT}/simulate/stream/${jobId}`,
+      );
+
+      eventSource.onmessage = (e) => {
+        const step: SimStep = JSON.parse(e.data);
+        setCurrentStep((i) => i + 1);
         setNodes((nds) =>
           nds.map((n) =>
             n.id === step.nodeId
@@ -104,7 +138,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
               : n,
           ),
         );
-      }
+      };
     } catch {
       alert("Server not running");
       //   throw new Error("Server not running");
@@ -132,19 +166,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
       const yaml = await res.text();
       setYamlConfig(yaml);
     } catch {
-      // Fallback YAML
-      const svcNames = nodes.map((n) =>
-        n.data.label.toLowerCase().replace(" ", "_"),
-      );
-      setYamlConfig(
-        `version: '3.8'\n\nservices:\n${nodes
-          .map((n) => {
-            const name = n.data.label.toLowerCase().replace(" ", "_");
-            const cfg = SERVICE_CONFIGS[n.data.serviceType as ServiceType];
-            return `  ${name}:\n    image: ${cfg.defaultImage}\n    container_name: ${name}\n${n.data.port ? `    ports:\n      - "${n.data.port}:${n.data.port}"\n` : ""}    networks:\n      - edgeflow_net`;
-          })
-          .join("\n")}\n\nnetworks:\n  edgeflow_net:\n    driver: bridge`,
-      );
+      console.error("Cant create config due a network error");
     }
     setConfigVisible(true);
   };
@@ -201,6 +223,10 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
 
       <div ref={reactFlowWrapper} className="flex-1 relative h-full">
         <ReactFlow
+          onReconnect={onReconnect}
+          onReconnectStart={onReconnectStart}
+          onReconnectEnd={onReconnectEnd}
+          onEdgeDoubleClick={onEdgeDoubleClick}
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -209,6 +235,9 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
           onNodeContextMenu={onNodeContextMenu}
           nodeTypes={nodeTypes}
           nodesDraggable={true}
+          edgesUpdatable={true}
+          edgesFocusable={true}
+          selectNodesOnDrag={false}
           fitView
           deleteKeyCode="Delete">
           <Background
@@ -252,12 +281,20 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
           visible={simVisible}
           onClose={() => setSimVisible(false)}
         />
+
+        <ConfigModal
+          yaml={yamlConfig}
+          visible={configVisible}
+          onClose={() => setConfigVisible(false)}
+        />
+
+        <AIPanel
+          suggestions={aiSuggestions}
+          visible={aiVisible}
+          loading={aiLoading}
+          onClose={() => setAiVisible(false)}
+        />
       </div>
-      <ConfigModal
-        yaml={yamlConfig}
-        visible={configVisible}
-        onClose={() => setConfigVisible(false)}
-      />
     </div>
   );
 }
