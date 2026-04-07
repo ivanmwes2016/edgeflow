@@ -20,95 +20,34 @@ export default function ConfigModal({ yaml, visible, onClose }: Props) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.7)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 100,
-      }}
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/70"
       onClick={onClose}>
       <div
-        style={{
-          background: "#0d1117",
-          border: "1px solid #1e293b",
-          borderRadius: 14,
-          width: 600,
-          maxHeight: "80vh",
-          display: "flex",
-          flexDirection: "column",
-        }}
+        className="flex w-150 max-h-[80vh] flex-col rounded-[14px] border border-slate-800 bg-[#0d1117]"
         onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            padding: "14px 16px",
-            borderBottom: "1px solid #1e293b",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#86efac",
-              fontFamily: "JetBrains Mono, monospace",
-            }}>
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3.5">
+          <span className="font-mono text-[13px] font-semibold text-green-300">
             docker-compose.yml
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          </span>
+          <div className="flex gap-2">
             <button
               onClick={handleCopy}
-              style={{
-                padding: "5px 12px",
-                background: "#1e293b",
-                border: "none",
-                borderRadius: 6,
-                color: "#94a3b8",
-                cursor: "pointer",
-                fontSize: 12,
-              }}>
+              className="cursor-pointer rounded-md bg-slate-800 px-3 py-1 text-xs text-slate-400 hover:text-slate-200 transition-colors">
               Copy
             </button>
             <button
               onClick={handleDownload}
-              style={{
-                padding: "5px 12px",
-                background: "#14532d",
-                border: "none",
-                borderRadius: 6,
-                color: "#86efac",
-                cursor: "pointer",
-                fontSize: 12,
-              }}>
+              className="cursor-pointer rounded-md bg-green-950 px-3 py-1 text-xs text-green-300 hover:bg-green-900 transition-colors">
               Download
             </button>
             <button
               onClick={onClose}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#475569",
-                cursor: "pointer",
-                fontSize: 18,
-              }}>
+              className="cursor-pointer bg-transparent text-lg text-slate-500 hover:text-slate-300 transition-colors">
               ×
             </button>
           </div>
         </div>
-        <pre
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: 16,
-            margin: 0,
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: 12,
-            color: "#e2e8f0",
-            lineHeight: 1.7,
-          }}>
+        <pre className="m-0 flex-1 overflow-auto p-4 font-mono text-xs leading-[1.7] text-slate-200">
           {yaml}
         </pre>
       </div>

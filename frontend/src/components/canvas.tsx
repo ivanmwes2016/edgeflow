@@ -2,22 +2,20 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   Controls,
-  useEdgesState,
-  type Edge,
   type OnNodesChange,
   type Node,
-  type Connection,
-  addEdge,
-  reconnectEdge,
 } from "reactflow";
 import ToolBar from "./toolBar";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AISuggestion } from "../types/base";
 import ServiceNode from "../nodes/ServiceNode";
 import SimPanel from "./SimPanel";
-import ConfigModal from "./configModal";
+
 import AIPanel from "./AiPanel";
 import { config } from "../constants";
+import ConfigModal from "./ConfigModal";
+import { useSimulation } from "../hooks/useSimulation";
+import useEdgeAndNode from "../hooks/useEdgeAndNode";
 
 const nodeTypes = { service: ServiceNode };
 
@@ -30,11 +28,6 @@ interface Props {
 }
 
 export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
-  const [deployLogs, setDeployLogs] = useState<string[]>([]);
-  const [deploying, setDeploying] = useState<boolean>();
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [simVisible, setSimVisible] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [yamlConfig, setYamlConfig] = useState("");
   const [configVisible, setConfigVisible] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
@@ -42,110 +35,37 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
   const [aiLoading, setAiLoading] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
-  const edgeReconnectSuccessful = useRef(true);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  const onEdgeDoubleClick = useCallback(
-    (_: React.MouseEvent, edge: Edge) => {
-      console.log("heloor");
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-    },
-    [setEdges],
-  );
+  const {
+    edges,
+    setEdges,
+    onConnect,
+    onEdgeDoubleClick,
+    onNodeContextMenu,
+    onReconnect,
+    onEdgesChange,
+    onReconnectEnd,
+    onReconnectStart,
+  } = useEdgeAndNode({ setNodes });
 
-  const onReconnectStart = useCallback(() => {
-    edgeReconnectSuccessful.current = false;
-  }, []);
-
-  const onReconnect = useCallback(
-    (oldEdge: Edge, newConnection: Connection) => {
-      edgeReconnectSuccessful.current = true;
-      setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
-    },
-    [setEdges],
-  );
-
-  const onReconnectEnd = useCallback(
-    (_: MouseEvent | TouchEvent, edge: Edge) => {
-      if (!edgeReconnectSuccessful.current) {
-        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-      }
-      edgeReconnectSuccessful.current = true;
-    },
-    [setEdges],
-  );
-
-  const onConnect = useCallback(
-    (params: Connection | Edge) =>
-      setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setEdges],
-  );
-
-  const onNodeContextMenu = useCallback(
-    (e: React.MouseEvent, node: Node) => {
-      e.preventDefault();
-      setNodes((nds) => nds.filter((n) => n.id !== node.id));
-      setEdges((eds) =>
-        eds.filter((ed) => ed.source !== node.id && ed.target !== node.id),
-      );
-    },
-    [setNodes, setEdges],
-  );
-
-  const handleSimulate = async () => {
-    if (nodes.length === 0) return;
-    setSimulating(true);
-    setSimVisible(true);
-
-    const payload = {
+  const getPayload = useCallback(
+    () => ({
       nodes: nodes.map((n) => ({
         id: n.id,
         label: n.data.label,
         type: n.data.serviceType,
       })),
       edges: edges.map((e) => ({ source: e.source, target: e.target })),
-    };
+    }),
+    [nodes, edges],
+  );
 
-    try {
-      const res = await fetch(`${config.API_ENDPOINT}/deploy/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const { jobId } = await res.json();
-
-      const eventSource = new EventSource(
-        `${config.API_ENDPOINT}/deploy/stream/${jobId}`,
-      );
-
-      eventSource.onmessage = (e) => {
-        setDeployLogs((prev) => [...prev, e.data]);
-      };
-
-      eventSource.addEventListener("done", () => {
-        eventSource.close();
-        setDeploying(false);
-      });
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        setDeploying(false);
-      };
-    } catch {
-      throw new Error("Server not running");
-    }
-    setSimulating(false);
-  };
+  const { deployLogs, simVisible, simulating, simulate, setSimVisible } =
+    useSimulation(getPayload());
 
   const handleGenerate = async () => {
-    const payload = {
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        label: n.data.label,
-        type: n.data.serviceType,
-      })),
-      edges: edges.map((e) => ({ source: e.source, target: e.target })),
-    };
+    const payload = getPayload();
     try {
       const res = await fetch(`${config.API_ENDPOINT}/deploy/generate`, {
         method: "POST",
@@ -163,14 +83,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
   const handleAnalyse = async () => {
     setAiVisible(true);
     setAiLoading(true);
-    const payload = {
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        type: n.data.serviceType,
-        label: n.data.label,
-      })),
-      edges: edges.map((e) => ({ source: e.source, target: e.target })),
-    };
+    const payload = getPayload();
     try {
       const res = await fetch(`${config.API_ENDPOINT}/ai/suggest`, {
         method: "POST",
@@ -198,10 +111,12 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
     setConfigVisible(false);
   };
 
+  useEffect(() => () => eventSourceRef.current?.close(), []);
+
   return (
     <div className=" flex-1 flex flex-col h-full">
       <ToolBar
-        onSimulate={handleSimulate}
+        onSimulate={simulate}
         onGenerate={handleGenerate}
         onAnalyse={handleAnalyse}
         onClear={handleClear}
@@ -237,26 +152,13 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
           <Controls />
         </ReactFlow>
         {nodes.length === 0 && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              pointerEvents: "none",
-            }}>
-            <div style={{ textAlign: "center", color: "#334155" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>⬡</div>
-              <div
-                style={{
-                  fontSize: 16,
-                  fontFamily: "JetBrains Mono, monospace",
-                  color: "#475569",
-                }}>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-slate-700">
+              <div className="mb-3 text-[40px]">⬡</div>
+              <div className="font-mono text-base text-slate-500">
                 Add services from the left panel
               </div>
-              <div style={{ fontSize: 12, marginTop: 6, color: "#334155" }}>
+              <div className="mt-1.5 text-xs text-slate-700">
                 Connect them by dragging between handles
               </div>
             </div>

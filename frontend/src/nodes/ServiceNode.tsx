@@ -20,16 +20,15 @@ export default function ServiceNode({
 
   return (
     <div
-      className={isDeploying ? "node-deploying" : ""}
+      className={[
+        "relative min-w-35 cursor-grab rounded-xl px-4 py-3 transition-[border-color,box-shadow] duration-200",
+        isDeploying ? "node-deploying" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{
         background: cfg.color,
         border: `1.5px solid ${isDeployed ? "#22c55e" : selected ? cfg.border : cfg.border + "88"}`,
-        borderRadius: 12,
-        padding: "12px 16px",
-        minWidth: 140,
-        cursor: "grab",
-        position: "relative",
-        transition: "border-color 0.2s, box-shadow 0.2s",
         boxShadow: selected
           ? `0 0 16px ${cfg.glow}`
           : isDeployed
@@ -39,39 +38,21 @@ export default function ServiceNode({
       <Handle type="target" position={Position.Left} />
       <Handle type="source" position={Position.Right} />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 18 }}>{cfg.icon}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{cfg.icon}</span>
         <div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#f1f5f9",
-              fontFamily: "JetBrains Mono, monospace",
-            }}>
+          <div className="font-mono text-[13px] font-semibold text-slate-100">
             {data.label}
           </div>
           <div
-            style={{
-              fontSize: 10,
-              color: cfg.border,
-              marginTop: 2,
-              fontFamily: "JetBrains Mono, monospace",
-            }}>
+            className="mt-0.5 font-mono text-[10px]"
+            style={{ color: cfg.border }}>
             {data.serviceType}
             {data.port ? `:${data.port}` : ""}
           </div>
         </div>
         {isDeployed && (
-          <div
-            style={{
-              marginLeft: "auto",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#22c55e",
-            }}
-          />
+          <div className="ml-auto size-2 rounded-full bg-green-500" />
         )}
       </div>
     </div>

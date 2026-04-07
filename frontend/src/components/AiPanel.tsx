@@ -9,9 +9,9 @@ interface Props {
 
 const ICONS = { info: "ℹ️", warning: "⚠️", success: "✅" };
 const COLORS = {
-  info: { bg: "#0f2744", border: "#1d4ed8", text: "#93c5fd" },
-  warning: { bg: "#2d1f00", border: "#92400e", text: "#fcd34d" },
-  success: { bg: "#052e16", border: "#166534", text: "#86efac" },
+  info: "bg-[#0f2744] border-blue-700 text-blue-300",
+  warning: "bg-[#2d1f00] border-amber-800 text-yellow-300",
+  success: "bg-[#052e16] border-green-800 text-green-300",
 };
 
 export default function AIPanel({
@@ -23,98 +23,38 @@ export default function AIPanel({
   if (!visible) return null;
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: 208,
-        bottom: 16,
-        width: 320,
-        background: "#0d1117",
-        border: "1px solid #312e81",
-        borderRadius: 12,
-        zIndex: 10,
-        overflow: "hidden",
-      }}>
-      <div
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid #1e293b",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#a78bfa",
-            fontFamily: "JetBrains Mono, monospace",
-            letterSpacing: 1,
-          }}>
+    <div className="absolute bottom-4 left-52 z-10 w-80 overflow-hidden rounded-xl border border-indigo-900 bg-[#0d1117]">
+      <div className="flex items-center justify-between border-b border-slate-800 px-3.5 py-3">
+        <span className="font-mono text-xs font-semibold tracking-widest text-violet-400">
           ✦ AI ANALYSIS
-        </div>
+        </span>
         <button
           onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#475569",
-            cursor: "pointer",
-            fontSize: 16,
-          }}>
+          className="cursor-pointer bg-transparent text-base text-slate-500 hover:text-slate-300 transition-colors">
           ×
         </button>
       </div>
 
-      <div
-        style={{
-          padding: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}>
+      <div className="flex flex-col gap-2 p-3">
         {loading ? (
-          <div
-            style={{
-              padding: 16,
-              textAlign: "center",
-              color: "#475569",
-              fontSize: 13,
-            }}>
+          <div className="py-4 text-center text-[13px] text-slate-500">
             Analysing architecture...
           </div>
         ) : (
-          suggestions.map((s, i) => {
-            const c = COLORS[s.type];
-            return (
-              <div
-                key={i}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  background: c.bg,
-                  border: `1px solid ${c.border}`,
-                }}>
-                <div
-                  style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 14 }}>{ICONS[s.type]}</span>
-                  <div style={{ fontSize: 12, color: c.text, lineHeight: 1.6 }}>
-                    {s.message}
-                  </div>
-                </div>
+          suggestions.map((s, i) => (
+            <div
+              key={i}
+              className={`rounded-lg border px-3 py-2.5 ${COLORS[s.type]}`}>
+              <div className="flex items-start gap-2">
+                <span className="text-sm">{ICONS[s.type]}</span>
+                <p className="text-xs leading-relaxed">{s.message}</p>
               </div>
-            );
-          })
+            </div>
+          ))
         )}
-        <div
-          style={{
-            fontSize: 10,
-            color: "#334155",
-            paddingTop: 4,
-            lineHeight: 1.5,
-          }}>
+        <p className="pt-1 text-[10px] leading-[1.5] text-slate-700">
           Connect Claude API key in backend/routes/ai.py for full AI analysis
-        </div>
+        </p>
       </div>
     </div>
   );
