@@ -66,6 +66,8 @@ make install
 make run
 ```
 
+IMPORTANT: Please ensure your local docker is running.
+
 # Testing
 
 ```bash
