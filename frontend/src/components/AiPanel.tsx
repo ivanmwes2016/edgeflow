@@ -52,7 +52,7 @@ export default function AIPanel({
             </div>
           ))
         )}
-        <p className="pt-1 text-[10px] leading-[1.5] text-slate-700">
+        <p className="pt-1 text-[10px] leading-1.5 text-slate-700">
           Connect Claude API key in backend/routes/ai.py for full AI analysis
         </p>
       </div>
