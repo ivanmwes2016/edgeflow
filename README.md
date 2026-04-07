@@ -36,12 +36,14 @@ Built as a tech task demonstrating full-stack skills in React, TypeScript, and P
 - **React Flow** — node graph canvas
 - **Tailwind CSS** — styling
 - **Vite** — build tool
+- **Vitest** — testing tool
 
 ### Backend
 
 - **Python 3.12** with FastAPI
 - **Jinja2** — docker-compose template rendering
 - **Pydantic** — request validation
+- **PyTest** - Testing
 - Topological sort for correct service deployment ordering
 
 ### Infrastructure
@@ -59,9 +61,16 @@ Built as a tech task demonstrating full-stack skills in React, TypeScript, and P
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+make env
+make install
+make run
+```
+
+# Testing
+
+```bash
+make test
+make coverage
 ```
 
 **Frontend (new terminal):**
@@ -70,6 +79,13 @@ uvicorn main:app --reload --port 8000
 cd frontend
 npm install
 npm run dev
+```
+
+# Testing
+
+```bash
+npm run test
+npm run coverage
 ```
 
 Open **http://localhost:5173**
@@ -174,70 +190,67 @@ Returns architecture suggestions for the current graph.
 
 ---
 
-## Project Structure
-
-```
-edgeflow/
-├── frontend/
-│   └── src/
-│       ├── App.tsx                 # Main app + React Flow setup
-│       ├── types/index.ts          # Shared types + service configs
-│       ├── nodes/
-│       │   └── ServiceNode.tsx     # Custom node component
-│       └── components/
-│           ├── Sidebar.tsx         # Service palette
-│           ├── Toolbar.tsx         # Action buttons
-│           ├── SimPanel.tsx        # Deployment log panel
-│           ├── ConfigModal.tsx     # YAML viewer + download
-│           └── AIPanel.tsx         # AI suggestion cards
-├── backend/
-│   ├── main.py                     # FastAPI app + CORS
-│   └── routes/
-│       ├── config.py               # docker-compose generation
-│       ├── simulate.py             # Deployment simulation + topo sort
-│       └── ai.py                   # AI suggestions (Claude API hook)
-├── docker-compose.yml
-└── README.md
-```
-
----
-
-## Adding Claude AI
-
-The AI endpoint is ready to wire up. In `backend/routes/ai.py`, replace the heuristic logic with:
-
-```python
-import anthropic
-
-client = anthropic.Anthropic(api_key="YOUR_CLAUDE_API_KEY")
-
-@router.post("/suggest")
-def suggest(payload: AIRequest):
-    prompt = f"""
-    Analyse this system architecture and return 3-5 improvement suggestions as JSON.
-    Architecture: {payload.dict()}
-    Return only: [{{"type": "info|warning|success", "message": "..."}}]
-    """
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    suggestions = json.loads(message.content[0].text)
-    return {"suggestions": suggestions}
-```
-
----
-
 ## Design decisions
 
-**Why React Flow?** It's the most production-grade graph library for React — used by tools like n8n and Retool. Handles node state, edge connections, and custom renderers out of the box.
+**Why React Flow?**
+React Flow provides a production-grade abstraction for graph-based UIs.
 
-**Why topological sort for simulation?** Services have real dependencies — a database must be healthy before an API can connect to it. The backend sorts the graph so deployment always happens in the correct order.
+Built-in state management for nodes and edges
+Handles drag, zoom, pan, and connections out of the box
+Extensible via custom node/edge renderers
+Used in real-world tools like workflow builders (e.g. internal tooling platforms)
 
-**Why Jinja2 for config generation?** YAML generation via string concatenation is brittle. Jinja2 templates are readable, testable, and easy to extend with new service types.
+👉 This allowed focusing on domain logic (deployment orchestration) instead of low-level canvas/event handling.
 
----
+**Why topological sort for simulation?**
+The system models real infrastructure dependencies:
+
+API depends on database
+Worker depends on queue
+Web depends on API
+
+Using Topological Sort ensures:
+
+Services start in the correct order
+No service starts before its dependencies are ready
+The graph is validated implicitly (cycles can be detected)
+
+👉 This mirrors real-world orchestration tools like Docker Compose and Kubernetes.
+
+**Why Jinja2 for config generation?**
+Generating YAML via string concatenation is:
+
+error-prone ❌
+hard to maintain ❌
+difficult to extend ❌
+
+Using Jinja2:
+
+Separates logic from presentation
+Produces clean, readable templates
+Makes adding new service types trivial
+Enables easier testing of output
+
+👉 This makes the system extensible and production-friendly
+
+**Why FastAPI for backend?**
+FastAPI was chosen because it provides a modern, high-performance backend with minimal boilerplate while still being strongly typed and testable.
+
+1. High performance (async-first)
+
+FastAPI is built on: ASGI, async/await, starlette + Pydantic
+
+This makes it ideal for:
+
+handling concurrent requests
+streaming logs (SSE)
+non-blocking operations
+
+In this case:
+deployment runs in background
+logs stream in real-time
+
+-> FastAPI handled this cleanly.
 
 ## Author
 
