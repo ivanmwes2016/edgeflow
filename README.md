@@ -117,7 +117,7 @@ Open **http://localhost:5173**
 
 All endpoints accept and return JSON unless noted.
 
-### `POST /api/config/generate`
+### `POST /api/deploy/generate`
 
 Generates a `docker-compose.yml` from the graph.
 
@@ -142,7 +142,7 @@ Generates a `docker-compose.yml` from the graph.
 
 ---
 
-### `POST /api/simulate/run`
+### `POST /api/deploy/run`
 
 Returns ordered deployment steps using topological sort.
 
