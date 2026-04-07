@@ -12,9 +12,8 @@ import ReactFlow, {
 } from "reactflow";
 import ToolBar from "./toolBar";
 import { useCallback, useRef, useState } from "react";
-import type { AISuggestion, ServiceType } from "../types/base";
+import type { AISuggestion } from "../types/base";
 import ServiceNode from "../nodes/ServiceNode";
-import { SERVICE_CONFIGS } from "../static/data";
 import SimPanel from "./SimPanel";
 import ConfigModal from "./configModal";
 import AIPanel from "./AiPanel";

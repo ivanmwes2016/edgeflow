@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import  deploy, ai
+from app.routers import deploy
+from app.routers import  ai
 
 app = FastAPI(title="EdgeFlowAPI", version="1.0.0")
 app.add_middleware(
