@@ -7,3 +7,9 @@ install:
 env:
 	python -m venv .venv && source .venv/bin/activate
 
+test:
+	pytest
+
+coverage:
+	pytest --cov=app
+
