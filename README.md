@@ -30,7 +30,7 @@ Built as a tech task demonstrating full-stack skills in React, TypeScript, and P
 
 ## Tech Stack
 
-### Frontend
+### Frontend.
 
 - **React 18** with TypeScript
 - **React Flow** — node graph canvas
