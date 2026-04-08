@@ -2,12 +2,17 @@ import { ReactFlowProvider } from "reactflow";
 import "./App.css";
 import Flow from "./components/flow";
 import "reactflow/dist/style.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const client = new QueryClient();
 
 function App() {
   return (
-    <ReactFlowProvider>
-      <Flow />
-    </ReactFlowProvider>
+    <QueryClientProvider client={client}>
+      <ReactFlowProvider>
+        <Flow />
+      </ReactFlowProvider>
+    </QueryClientProvider>
   );
 }
 

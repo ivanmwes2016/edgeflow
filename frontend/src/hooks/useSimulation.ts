@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { config } from "../constants";
 
 interface SimulationPayload {
-  nodes: { id: string; label: string; type: string }[];
+  nodes: { id: string; label: string; type: string; image: string }[];
   edges: { source: string; target: string }[];
 }
 

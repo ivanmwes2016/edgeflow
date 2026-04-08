@@ -37,3 +37,13 @@ export interface IServiceConfig {
   defaultImage: string;
   icon: string;
 }
+
+export interface IService {
+  id: number;
+  type: string;
+  label: string;
+  port: number;
+  image: string;
+  icon: string;
+  color: string;
+}

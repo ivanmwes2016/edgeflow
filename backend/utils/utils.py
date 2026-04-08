@@ -4,6 +4,7 @@ from jinja2 import Template
 import os
 from utils.types import *
 from utils.constants import DEFAULT_IMAGES, DOCKER_COMPOSE_TEMPLATE
+import random
 
 
 def topologicalSort(nodes:List[Node], edges: List[EdgeData]) -> list:
@@ -90,4 +91,6 @@ def runDocker(jobs: dict, jobId: str, temp: tempfile._TemporaryFileWrapper):
             jobs[jobId]["done"] = True
             os.unlink(temp.name)
     
-  
+
+def random_color():
+    return "#{:06x}".format(random.randint(0, 0xFFFFFF))

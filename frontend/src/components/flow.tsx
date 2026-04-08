@@ -1,8 +1,7 @@
 import { useCallback, useRef } from "react";
 import Canvas from "./canvas";
 import SideBar from "./sideBar";
-import type { ServiceType } from "../types/base";
-import { SERVICE_CONFIGS } from "../static/data";
+import type { IService } from "../types/base";
 import { useNodesState, type Node } from "reactflow";
 
 export default function Flow() {
@@ -11,14 +10,19 @@ export default function Flow() {
   const buildId = () => `node_${++nodeId.current}`;
 
   const addService = useCallback(
-    (type: ServiceType) => {
-      const cfg = SERVICE_CONFIGS[type];
+    (service: IService) => {
       const newNode: Node = {
         id: buildId(),
-        type: "service",
+        type: service.type,
         position: { x: 220 + Math.random() * 300, y: 80 + Math.random() * 200 },
-        data: { label: cfg.label, serviceType: type, port: cfg.defaultPort },
+        data: {
+          label: service.label,
+          serviceType: service.type,
+          port: service.port,
+          image: service.image,
+        },
       };
+
       setNodes((nds) => [...nds, newNode]);
     },
     [setNodes],

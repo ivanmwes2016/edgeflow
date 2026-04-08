@@ -7,3 +7,4 @@ anthropic
 pytest 
 pytest-cov 
 httpx
+sqlalchemy 

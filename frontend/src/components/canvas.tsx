@@ -8,16 +8,12 @@ import ReactFlow, {
 import ToolBar from "./toolBar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AISuggestion } from "../types/base";
-import ServiceNode from "../nodes/ServiceNode";
 import SimPanel from "./SimPanel";
-
 import AIPanel from "./AiPanel";
 import { config } from "../constants";
 import ConfigModal from "./ConfigModal";
 import { useSimulation } from "../hooks/useSimulation";
 import useEdgeAndNode from "../hooks/useEdgeAndNode";
-
-const nodeTypes = { service: ServiceNode };
 
 interface Props {
   onNodesChange: OnNodesChange;
@@ -55,6 +51,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
         id: n.id,
         label: n.data.label,
         type: n.data.serviceType,
+        image: n.data.image,
       })),
       edges: edges.map((e) => ({ source: e.source, target: e.target })),
     }),
@@ -136,7 +133,6 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeContextMenu={onNodeContextMenu}
-          nodeTypes={nodeTypes}
           nodesDraggable={true}
           edgesUpdatable={true}
           edgesFocusable={true}

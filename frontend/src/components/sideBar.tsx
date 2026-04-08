@@ -1,13 +1,30 @@
-import { SERVICE_CONFIGS } from "../static/data";
-import type { ServiceType } from "../types/base";
+import { useQuery } from "@tanstack/react-query";
+import type { IService } from "../types/base";
+import { config } from "../constants";
 
 interface Props {
-  onAdd: (type: ServiceType) => void;
+  onAdd: (type: IService) => void;
   title: string;
   description: string;
 }
 
 export default function SideBar({ onAdd, title, description }: Props) {
+  const { data, isLoading, isError } = useQuery<IService[]>({
+    queryKey: ["services"],
+    queryFn: () =>
+      fetch(`${config.API_ENDPOINT}/services`).then((r) => r.json()),
+  });
+
+  if (!data)
+    return (
+      <div className="w-50 border-r border-r-gray-700 flex flex-col p-4">
+        No data, check if the server is running
+      </div>
+    );
+
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p className=" text-white">Error loading services</p>;
+
   return (
     <div className="w-50 border-r border-r-gray-700 flex flex-col p-4">
       <div className=" py-4 border-b border-b-gray-700 ">
@@ -18,33 +35,22 @@ export default function SideBar({ onAdd, title, description }: Props) {
       <div className="pt-4">
         <div className="text-xs py-4">SERVICES</div>
 
-        {Object.entries(SERVICE_CONFIGS).map(([type, cfg], idx) => (
+        {data.map((sv) => (
           <button
-            onClick={() => onAdd(type as ServiceType)}
-            key={idx}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                cfg.color;
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                cfg.border;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "transparent";
-              (e.currentTarget as HTMLButtonElement).style.borderColor =
-                `${cfg.border}22`;
-            }}
-            className={`w-full flex gap-2 text-left mb-2 p-2 cursor-pointer rounded-lg transition-all border border-[${cfg.border}]`}>
-            <div>{cfg.icon}</div>
+            onClick={() => onAdd(sv)}
+            key={sv.id}
+            style={{ borderColor: sv.color }}
+            className={`w-full flex gap-2 text-left mb-2 p-2 cursor-pointer rounded-lg transition-all border hover:bg-white/20`}>
+            <div>{sv.icon}</div>
             <div className="text-white">
-              <div className="text-sm font-bold">{cfg.label}</div>
+              <div className="text-sm font-bold">{sv.label}</div>
               <div
                 style={{
                   fontSize: 10,
-                  color: cfg.border,
+                  color: sv.color,
                   fontFamily: "JetBrains Mono, monospace",
                 }}>
-                {cfg.defaultImage.split(":")[0]}
+                {sv.image.split(":")[0]}
               </div>
             </div>
           </button>
