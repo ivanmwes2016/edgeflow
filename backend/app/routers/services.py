@@ -19,5 +19,59 @@ def to_dict(service: Service):
 
 @router.get("/")
 def getServices(db:Session = Depends(get_db)):
-     return [to_dict(s) for s in db.query(Service).all()]
+    try:
+        return [to_dict(s) for s in db.query(Service).all()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.get("/{service_id}")
+def get_service(service_id: int, db: Session = Depends(get_db)):
+    try:
+        service = db.query(Service).filter(Service.id == service_id).first()
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        return to_dict(service)
+    except HTTPException:
+        raise  
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+
+@router.post("/")
+def createService(data: dict, db: Session  = Depends(get_db)):
+    
+    try:
+        service = Service(**data)
+        db.add(service)
+        db.commit()
+        db.refresh(service)
+        return to_dict(service)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.put("/{service_id}")
+def UpdateService(service_id: int, data: dict, db: Session = Depends(get_db)):
+    try:
+        service = db.query(Service).filter(Service.id == service_id).first()
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        for key, val in data.items():
+            setattr(service, key, val)
+        db.commit()
+        db.refresh(service)
+        return to_dict(service)
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+
+
+
+
+
 
