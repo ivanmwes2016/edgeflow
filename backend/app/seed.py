@@ -1,5 +1,5 @@
 from utils.dbConfig import engine, SessionLocal, Base
-from models.services import Service
+from app.models.services import Service
 
 
 def seed_data_to_db():

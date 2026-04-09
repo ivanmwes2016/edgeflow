@@ -1,11 +1,12 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  useEdgesState,
   type Edge,
   type Node,
   type Connection,
+  type OnEdgesChange,
   addEdge,
   reconnectEdge,
+  applyEdgeChanges,
 } from "reactflow";
 
 interface Props {
@@ -16,13 +17,27 @@ interface Props {
 
 export default function useEdgeAndNode({ setNodes }: Props) {
   const edgeReconnectSuccessful = useRef(true);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const onEdgeDoubleClick = useCallback(
-    (_: React.MouseEvent, edge: Edge) => {
-      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-    },
-    [setEdges],
-  );
+
+  const [edges, setEdges] = useState<Edge[]>(() => {
+    try {
+      const stored = localStorage.getItem("flow_edges");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("flow_edges", JSON.stringify(edges));
+  }, [edges]);
+
+  const onEdgesChange: OnEdgesChange = useCallback((changes) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }, []);
+
+  const onEdgeDoubleClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+  }, []);
 
   const onReconnectStart = useCallback(() => {
     edgeReconnectSuccessful.current = false;
@@ -33,7 +48,7 @@ export default function useEdgeAndNode({ setNodes }: Props) {
       edgeReconnectSuccessful.current = true;
       setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
     },
-    [setEdges],
+    [],
   );
 
   const onReconnectEnd = useCallback(
@@ -43,13 +58,13 @@ export default function useEdgeAndNode({ setNodes }: Props) {
       }
       edgeReconnectSuccessful.current = true;
     },
-    [setEdges],
+    [],
   );
 
   const onConnect = useCallback(
     (params: Connection | Edge) =>
       setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
-    [setEdges],
+    [],
   );
 
   const onNodeContextMenu = useCallback(
@@ -60,7 +75,7 @@ export default function useEdgeAndNode({ setNodes }: Props) {
         eds.filter((ed) => ed.source !== node.id && ed.target !== node.id),
       );
     },
-    [setNodes, setEdges],
+    [setNodes],
   );
 
   return {

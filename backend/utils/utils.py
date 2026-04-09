@@ -34,29 +34,33 @@ def topologicalSort(nodes:List[Node], edges: List[EdgeData]) -> list:
 
 
 def buildYAMLContent(payload: GraphPayload) -> str:
-    dependsMap ={}
+    dependsMap = {}
     for edge in payload.edges:
         target = edge.target
         sourceNode = next((n for n in payload.nodes if n.id == edge.source), None)
         if sourceNode:
             if target not in dependsMap:
                 dependsMap[target] = []
-            dependsMap[target].append(sourceNode.label.lower().replace(" ", "_"))
-    
+            dependsMap[target].append(sourceNode.id)
 
     nodesWithDependencies = []
     for node in payload.nodes:
         n = node.model_dump()
 
-        if node.image:
-            n["resolved_image"] = node.image
-        else:
-            n["resolved_image"] = DEFAULT_IMAGES.get(node.type, "nginx:latest")
+        short_id = node.id.replace("node_", "")
+        n["service_name"] = f"{node.label.lower().replace(' ', '_')}_{short_id}"
+
+        n["resolved_image"] = node.image if node.image else DEFAULT_IMAGES.get(node.type, "nginx:latest")
 
         n["depends"] = dependsMap.get(node.id, [])
         nodesWithDependencies.append(n)
 
-    return Template(DOCKER_COMPOSE_TEMPLATE).render(nodes=nodesWithDependencies)
+    nodeIdToName = {n["id"]: n["service_name"] for n in nodesWithDependencies}
+
+    return Template(DOCKER_COMPOSE_TEMPLATE).render(
+        nodes=nodesWithDependencies,
+        nodeIdToName=nodeIdToName
+    )
 
 
 def runDocker(jobs: dict, jobId: str, temp: tempfile._TemporaryFileWrapper):

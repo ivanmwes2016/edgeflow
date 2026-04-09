@@ -67,10 +67,22 @@ def UpdateService(service_id: int, data: dict, db: Session = Depends(get_db)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+        
 
-
-
+@router.delete("/{service_id}")
+def delete_service(service_id: int, db: Session = Depends(get_db)):
+    try:
+        service = db.query(Service).filter(Service.id == service_id).first()
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        db.delete(service)
+        db.commit()
+        return {"deleted": service_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

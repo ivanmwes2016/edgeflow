@@ -12,5 +12,5 @@ test:
 	pytest
 
 coverage:
-	pytest --cov=app
+	pytest --cov=app --cov-report=term-missing
 

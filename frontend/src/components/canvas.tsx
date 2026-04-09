@@ -14,6 +14,7 @@ import { config } from "../constants";
 import ConfigModal from "./ConfigModal";
 import { useSimulation } from "../hooks/useSimulation";
 import useEdgeAndNode from "../hooks/useEdgeAndNode";
+import ServiceNode from "../nodes/ServiceNode";
 
 interface Props {
   onNodesChange: OnNodesChange;
@@ -22,6 +23,8 @@ interface Props {
   >;
   nodes: Node[];
 }
+
+const nodeTypes = { service: ServiceNode };
 
 export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
   const [yamlConfig, setYamlConfig] = useState("");
@@ -133,6 +136,7 @@ export default function Canvas({ onNodesChange, setNodes, nodes }: Props) {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeContextMenu={onNodeContextMenu}
+          nodeTypes={nodeTypes}
           nodesDraggable={true}
           edgesUpdatable={true}
           edgesFocusable={true}
